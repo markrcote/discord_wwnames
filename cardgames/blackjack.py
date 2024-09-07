@@ -21,6 +21,7 @@ class Blackjack(CardGame):
     def __init__(self):
         super().__init__()
         self.dealer = Dealer()
+        self.players_waiting  = []
         self.current_player_idx = None
 
     def _check_turn(self, player):
@@ -32,7 +33,14 @@ class Blackjack(CardGame):
             raise CardGameError('No game in progress')
 
     def sit_down(self, player):
-        self.players.append(player)
+        if player in self.players or player in self.players_waiting:
+            raise CardGameError(f'{player} is already sitting down')
+
+        if self.current_player_idx is None:
+            self.players.append(player)
+        else:
+            self.players_waiting.append(player)
+        self.message_queue.append(f'{player} sits down and will join the next game.')
 
     def new_hand(self):
         if not self.players:
@@ -45,6 +53,7 @@ class Blackjack(CardGame):
         self.current_player_idx = 0
         self.deal(self.dealer, 2)
         self.message_queue.append(f'{self.dealer} shows {self.dealer.hand[0]}')
+
         if self.get_score(self.dealer) == 21:
             self.message_queue.append(
                 f'{self.dealer} reveals {self.dealer.hand[1]}. Dealer wins.'
@@ -81,10 +90,10 @@ class Blackjack(CardGame):
         if self.current_player_idx is None:
             raise CardGameError('No game in progress')
 
-        self.current_player_idx += 1
-        if self.current_player_idx >= len(self.players):
-            self.current_player_idx = None
-            self.dealer_turn()
+        if self.current_player_idx < len(self.players):
+            self.current_player_idx += 1
+        else:
+            raise CardGameError('All players have played this hand')
 
     def get_score(self, player):
         sorted_hand = sorted(player.hand, key=lambda card: card.value)
@@ -103,6 +112,12 @@ class Blackjack(CardGame):
         return score
 
     def dealer_turn(self):
+        if self.current_player_idx is None:
+            raise CardGameError('No game in progress')
+
+        if self.current_player_idx < len(self.players):
+            raise CardGameError('Players still have turns')
+
         while self.get_score(self.dealer) < 17:
             self.deal(self.dealer)
             self.message_queue.append(
