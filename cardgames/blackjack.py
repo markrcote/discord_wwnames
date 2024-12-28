@@ -1,3 +1,4 @@
+import asyncio
 import time
 from .card_game import CardGame, CardGameError, Player
 
@@ -154,7 +155,7 @@ class Blackjack(CardGame):
 
         return score
 
-    def dealer_turn(self):
+    async def dealer_turn(self):
         if self.current_player_idx is None:
             raise CardGameError('No game in progress')
 
@@ -164,6 +165,7 @@ class Blackjack(CardGame):
         self.message_queue.append(f'Dealer flips over the second card: {self.dealer.hand[-1]}')
 
         while self.get_score(self.dealer) < 17:
+            await asyncio.sleep(1)  # Add delay for dramatic effect
             self.deal(self.dealer)
             self.message_queue.append(
                 f'Dealer is dealt {self.dealer.hand[-1]}'
@@ -181,7 +183,7 @@ class Blackjack(CardGame):
         self.message_queue.append('Dealer stands.')
         self.end_hand()
 
-    def tick(self):
+    async def tick(self):
         # States of the game:
         # 1. No game in progress
         # Event: game starts after timeout/interaction.

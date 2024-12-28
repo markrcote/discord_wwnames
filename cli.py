@@ -1,3 +1,4 @@
+import asyncio
 import queue
 import signal
 import threading
@@ -76,7 +77,7 @@ def teardown_cmd_listener():
     cmd_listener_thread.join(1)
 
 
-if __name__ == "__main__":
+async def main():
     output = game.tick()
     if output:
         print('\n'.join(output))
@@ -90,7 +91,7 @@ if __name__ == "__main__":
 
     try:
         while True:
-            output = game.tick()
+            output = await game.tick()
             if output:
                 print('\n'.join(output))
             try:
@@ -112,3 +113,7 @@ if __name__ == "__main__":
     print('tearing down')
     teardown_cmd_listener()
     print('done')
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
