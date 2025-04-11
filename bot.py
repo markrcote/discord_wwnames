@@ -5,6 +5,7 @@ import subprocess
 import nextcord
 from nextcord.ext import commands, tasks
 
+import aws
 from cardgames.blackjack import Blackjack
 from wwnames.wwnames import WildWestNames
 
@@ -16,15 +17,18 @@ else:
 
 logging.basicConfig(level=LOG_LEVEL)
 
-# This will intentionally cause the bot to fail fast with a KeyError exception
-# if the token is not found.
-DISCORD_TOKEN = os.environ["DISCORD_TOKEN"]
+if aws.is_running_on_aws():
+    params = aws.get_parameters(["saloonbot-discord-token", "saloonbot-discord-guilds"])
+    DISCORD_TOKEN = params["saloonbot-discord-token"]
+    GUILD_IDS_STR = params["saloonbot-discord-guilds"]
+else:
+    DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+    GUILD_IDS_STR = os.getenv("DISCORD_GUILDS")
 
-GUILD_IDS_ENV = os.getenv("DISCORD_GUILDS")
-GUILD_IDS = [int(x) for x in GUILD_IDS_ENV.split(",")] if GUILD_IDS_ENV else None
+if not DISCORD_TOKEN:
+    raise Exception("No DISCORD_TOKEN found.")
 
-GIT_SHA = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True,
-                         text=True).stdout.strip()
+GUILD_IDS = [int(x) for x in GUILD_IDS_STR.split(",")] if GUILD_IDS_STR else None
 
 intents = nextcord.Intents.default()
 intents.message_content = True  # Enable message content
@@ -35,11 +39,6 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 @bot.event
 async def on_ready():
     logging.info("Howdy folks.")
-
-
-@bot.slash_command(description="Version", guild_ids=GUILD_IDS)
-async def wwname_version(interaction: nextcord.Interaction):
-    await interaction.send(GIT_SHA)
 
 
 @bot.slash_command(description="Generate a name", guild_ids=GUILD_IDS)
